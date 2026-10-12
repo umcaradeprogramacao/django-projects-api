@@ -1,19 +1,50 @@
-from django.test import TestCase
 
+from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
 
 from .models import Project
 
 
 class ProjectAPITests(APITestCase):
+
     def setUp(self):
+        self.user = User.objects.create_user(
+            username="usuario_teste",
+            password="senha_teste_123",
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.force_authenticate(user=self.user)
+
         self.project = Project.objects.create(
             name="Projeto de teste",
             description="Descrição para testes automatizados.",
         )
+
         self.list_url = "/api/projects/"
         self.detail_url = f"/api/projects/{self.project.id}/"
+
+
+    def test_token_authentication_can_create_project(self):
+        self.client.force_authenticate(user=None)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Token {self.token.key}"
+        )
+
+        response = self.client.post(
+            self.list_url,
+            {
+                "name": "Projeto via token",
+                "description": "Criado usando autenticação por token.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED,
+        )
 
     def test_list_projects(self):
         response = self.client.get(self.list_url)
@@ -27,7 +58,11 @@ class ProjectAPITests(APITestCase):
             "description": "Criado pelo teste automatizado.",
         }
 
-        response = self.client.post(self.list_url, data, format="json")
+        response = self.client.post(
+            self.list_url,
+            data,
+            format="json",
+        )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(
@@ -50,6 +85,7 @@ class ProjectAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.project.refresh_from_db()
+
         self.assertEqual(self.project.name, "Nome alterado")
         self.assertEqual(
             self.project.description,
@@ -59,9 +95,31 @@ class ProjectAPITests(APITestCase):
     def test_delete_project(self):
         response = self.client.delete(self.detail_url)
 
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
         self.assertFalse(
             Project.objects.filter(id=self.project.id).exists()
         )
 
-# Create your tests here.
+
+    def test_anonymous_user_cannot_create_project(self):
+        self.client.force_authenticate(user=None)
+
+        data = {
+            "name": "Projeto não autorizado",
+            "description": "Este projeto não deve ser criado.",
+        }
+
+        response = self.client.post(
+            self.list_url,
+            data,
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+    

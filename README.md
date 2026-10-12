@@ -138,3 +138,33 @@ Objetivo
 
 Este projeto faz parte do meu aprendizado em desenvolvimento backend com Python e Django, com foco na construção de APIs REST, organização de código, testes automatizados e documentação.
 
+Autenticação por token
+
+A API utiliza autenticação por token para permitir operações protegidas.
+
+1. Obter um token
+
+Envie uma requisição `POST` para `/api/token/` com suas credenciais:
+
+
+curl -X POST http://127.0.0.1:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "SEU_USUARIO", "password": "SUA_SENHA"}'
+```
+
+A resposta contém o token de autenticação.
+
+2. Usar o token
+
+Inclua o token no cabeçalho das requisições protegidas:
+
+
+curl -X POST http://127.0.0.1:8000/api/projects/ \
+  -H "Authorization: Token SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Meu projeto", "description": "Projeto de exemplo"}'
+```
+
+Importante: não publique tokens, senhas ou arquivos `.env` no repositório.
+
+
