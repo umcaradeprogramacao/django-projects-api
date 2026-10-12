@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "projects",
     "rest_framework",
     "drf_spectacular",
+    "rest_framework.authtoken",
 ]
 
 MIDDLEWARE = [
@@ -129,6 +130,18 @@ MAILERS = {
     },
 }
 
+
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
 }
+
+LOGIN_REDIRECT_URL = "/api/projects/"
+LOGOUT_REDIRECT_URL = "/api/projects/"
