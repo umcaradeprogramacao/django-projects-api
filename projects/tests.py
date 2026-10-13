@@ -20,12 +20,62 @@ class ProjectAPITests(APITestCase):
         self.project = Project.objects.create(
             name="Projeto de teste",
             description="Descrição para testes automatizados.",
+            owner=self.user,
         )
 
         self.list_url = "/api/projects/"
         self.detail_url = f"/api/projects/{self.project.id}/"
 
 
+    def test_user_cannot_retrieve_another_users_project(self):
+        another_user = User.objects.create_user(
+            username="outro_usuario",
+            password="senha_teste_456",
+        )
+
+        another_project = Project.objects.create(
+            name="Projeto de outra pessoa",
+            description="Este projeto pertence a outro usuário.",
+            owner=another_user,
+        )
+
+        response = self.client.get(
+            f"/api/projects/{another_project.id}/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_user_cannot_update_another_users_project(self):
+        another_user = User.objects.create_user(
+            username="outro_usuario_2",
+            password="senha_teste_789",
+        )
+
+        another_project = Project.objects.create(
+            name="Projeto protegido",
+            description="Não deve ser alterado por outro usuário.",
+            owner=another_user,
+        )
+
+        response = self.client.patch(
+            f"/api/projects/{another_project.id}/",
+            {"name": "Tentativa de alteração"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        another_project.refresh_from_db()
+        self.assertEqual(
+            another_project.name,
+            "Projeto protegido",
+        )
 
     def test_anonymous_user_cannot_update_project(self):
         self.client.force_authenticate(user=None)
@@ -154,4 +204,29 @@ class ProjectAPITests(APITestCase):
             response.status_code,
             status.HTTP_403_FORBIDDEN,
         )
+
     
+    def test_user_cannot_delete_another_users_project(self):
+        another_user = User.objects.create_user(
+            username="outro_usuario_3",
+            password="senha_teste_987",
+        )
+
+        another_project = Project.objects.create(
+            name="Projeto que deve ser protegido",
+            description="Não deve ser excluído por outro usuário.",
+            owner=another_user,
+        )
+
+        response = self.client.delete(
+            f"/api/projects/{another_project.id}/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        self.assertTrue(
+            Project.objects.filter(id=another_project.id).exists()
+        )
