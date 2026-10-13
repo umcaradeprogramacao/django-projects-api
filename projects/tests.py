@@ -26,6 +26,38 @@ class ProjectAPITests(APITestCase):
         self.detail_url = f"/api/projects/{self.project.id}/"
 
 
+
+    def test_anonymous_user_cannot_update_project(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.patch(
+            self.detail_url,
+            {"name": "Alteração não autorizada"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.name, "Projeto de teste")
+
+    def test_anonymous_user_cannot_delete_project(self):
+        self.client.force_authenticate(user=None)
+
+        response = self.client.delete(self.detail_url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self.assertTrue(
+            Project.objects.filter(id=self.project.id).exists()
+        )
+
     def test_token_authentication_can_create_project(self):
         self.client.force_authenticate(user=None)
         self.client.credentials(
